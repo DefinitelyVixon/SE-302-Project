@@ -7,4 +7,5 @@
 + 20180602019 - Efe Kaylak
 
 ## Milestones
-+ [ ] Requirements Document
++ [X] ~~Requirements Document~~
++ [ ] **Design Document**
