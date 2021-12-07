@@ -8,14 +8,8 @@
 
 ## Milestones
 + [X] ~~Requirements Document~~
-+ [ ] **Design Document**
-  + [ ] Introduction
-  + [ ] Design Entities
-  + [ ] Interface Description
-  + [ ] Decomposition Description
-    + [ ] Activity diagram
-    + [ ] Class diagram
-    + [X] ~~Use case diagram~~
++ [X] ~~Design Document~~
++ [ ] Project Delivery
 
 
 
