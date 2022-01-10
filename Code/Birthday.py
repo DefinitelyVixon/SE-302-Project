@@ -5,4 +5,4 @@ class Birthday:
         self.year = year
 
     def date_to_string(self):
-        return f"{self.day}-{self.month}-{self.year}"
+        return f"{self.day}/{self.month}/{self.year}"
