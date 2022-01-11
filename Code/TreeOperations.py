@@ -3,7 +3,8 @@ import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
-    QMainWindow, QLabel, QGridLayout, QDateEdit, QLineEdit, QMessageBox
+    QMainWindow, QLabel, QGridLayout, QDateEdit, QLineEdit, QMessageBox, \
+    QHBoxLayout, QComboBox
 
 
 # This layout looks promising
@@ -50,6 +51,11 @@ class MainWindow(QMainWindow):
         self.check_relation_button.setGeometry(QtCore.QRect(0, 120, 120, 120))
         self.check_relation_button.clicked.connect(
             self.check_relation_operation)
+
+        self.filter_button = QPushButton(text="Filter",
+                                         parent=self.central_widget)
+        self.filter_button.setGeometry(QtCore.QRect(0, 240, 120, 120))
+        self.filter_button.clicked.connect(self.filter_operation)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('myApp/QtWidget'):
@@ -173,7 +179,7 @@ class MainWindow(QMainWindow):
     def check_relation_operation(self):
 
         class AddRelationInfoWindow(QWidget):
-            add_signal = QtCore.pyqtSignal(dict)
+            add_signal = QtCore.pyqtSignal()
 
             def __init__(self):
                 super().__init__()
@@ -222,6 +228,44 @@ class MainWindow(QMainWindow):
         elif self.selected_object != obj_name and self.selected_object is not None:
             print(f'Bound {self.selected_object} to {obj_name}')
             self.selected_object = None
+
+    @pyqtSlot()
+    def filter_operation(self):
+
+        class FilterWindow(QWidget):
+            add_signal = QtCore.pyqtSignal()
+
+            def __init__(self):
+                super(FilterWindow, self).__init__()
+                self.setWindowModality(QtCore.Qt.ApplicationModal)
+                layout = QHBoxLayout()
+
+                self.setWindowTitle("Add or Remove Filter")
+                self.box = QComboBox()
+                self.box.addItem("Age")
+                self.box.addItem("Gender")
+                self.box.addItem("Birthday")
+
+                layout.addWidget(self.box)
+
+                self.add_filter_button = QPushButton("Add")
+                self.remove_filter_button = QPushButton("Remove")
+                self.cancel_action_button = QPushButton("Cancel")
+
+                self.cancel_action_button.clicked.connect(self.cancel_action)
+
+                layout.addWidget(self.add_filter_button)
+                layout.addWidget(self.remove_filter_button)
+                layout.addWidget(self.cancel_action_button)
+
+                self.setLayout(layout)
+
+            def cancel_action(self):
+                self.close()
+
+        if self.focused_window is None:
+            self.focused_window = FilterWindow()
+        self.focused_window.show()
 
 
 class DraggableButton(QPushButton):
