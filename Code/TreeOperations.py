@@ -2,8 +2,8 @@ from datetime import datetime
 import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, QMainWindow, QLabel, QGridLayout, QDateEdit, \
-    QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
+    QMainWindow, QLabel, QGridLayout, QDateEdit, QLineEdit, QMessageBox
 
 
 # This layout looks promising
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         self.selected_object = None
         self.focused_window = None
 
-        self.resize(800, 600)
+        self.resize(860, 600)
         self.init_ui()
 
         self.setAcceptDrops(True)
@@ -34,15 +34,22 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.label = QLabel(self.central_widget)
-        self.label.setGeometry(100, 0, 600, 600)
+        self.label.setGeometry(120, 0, 620, 620)
 
-        canvas = QtGui.QPixmap(600, 600)
+        canvas = QtGui.QPixmap(620, 620)
         canvas.fill(QtGui.QColor("darkgray"))
         self.label.setPixmap(canvas)
 
-        self.add_member_button = QPushButton(text="Add Member", parent=self.central_widget)
-        self.add_member_button.setGeometry(QtCore.QRect(0, 0, 100, 100))
+        self.add_member_button = QPushButton(text="Add Member",
+                                             parent=self.central_widget)
+        self.add_member_button.setGeometry(QtCore.QRect(0, 0, 120, 120))
         self.add_member_button.clicked.connect(self.add_member_operation)
+
+        self.check_relation_button = QPushButton(text="Check Relation",
+                                                 parent=self.central_widget)
+        self.check_relation_button.setGeometry(QtCore.QRect(0, 120, 120, 120))
+        self.check_relation_button.clicked.connect(
+            self.check_relation_operation)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('myApp/QtWidget'):
@@ -76,7 +83,8 @@ class MainWindow(QMainWindow):
                 self.input_surname = QLineEdit()
                 self.input_age = QLineEdit()
                 self.input_birthday = QDateEdit(calendarPopup=True)
-                self.input_birthday.setDateTime(QtCore.QDateTime(1900, 1, 1, 0, 0))
+                self.input_birthday.setDateTime(
+                    QtCore.QDateTime(1900, 1, 1, 0, 0))
 
                 layout.addWidget(self.input_name, 0, 1)
                 layout.addWidget(self.input_surname, 1, 1)
@@ -129,7 +137,8 @@ class MainWindow(QMainWindow):
                     x = msg.exec_()
                     return -1
                 else:
-                    age = int((datetime.now() - birthday_datetime).days/365.2425)
+                    age = int(
+                        (datetime.now() - birthday_datetime).days / 365.2425)
 
                 new_member = {"name": name,
                               "surname": surname,
@@ -145,10 +154,12 @@ class MainWindow(QMainWindow):
         def add_member(member_dict):
             print(member_dict)
             # noinspection PyArgumentList
-            push_button = DraggableButton(text=f"{member_dict['name']}\n{member_dict['surname']}",
-                                          parent=self.central_widget,
-                                          objectName=f'push_button{self.item_location_index}')
-            push_button.setGeometry(QtCore.QRect(700, self.item_location_index * 100, 100, 100))
+            push_button = DraggableButton(
+                text=f"{member_dict['name']}\n{member_dict['surname']}",
+                parent=self.central_widget,
+                objectName=f'push_button{self.item_location_index}')
+            push_button.setGeometry(
+                QtCore.QRect(700, self.item_location_index * 100, 100, 100))
             push_button.source_signal.connect(self.receive_button_name)
             self.item_location_index += 1
             push_button.show()
@@ -156,6 +167,49 @@ class MainWindow(QMainWindow):
         if self.focused_window is None:
             self.focused_window = AddPersonInfoWindow()
             self.focused_window.add_signal.connect(add_member)
+        self.focused_window.show()
+
+    @pyqtSlot()
+    def check_relation_operation(self):
+
+        class AddRelationInfoWindow(QWidget):
+            add_signal = QtCore.pyqtSignal(dict)
+
+            def __init__(self):
+                super().__init__()
+                self.setWindowTitle("Check Relation")
+                self.setWindowModality(QtCore.Qt.ApplicationModal)
+                layout = QGridLayout()
+                layout.addWidget(QLabel("First Person"), 0, 0)
+                layout.addWidget(QLabel("Second Person"), 1, 0)
+
+                self.first_input_name = QLineEdit()
+                self.first_input_surname = QLineEdit()
+
+                layout.addWidget(self.first_input_name, 0, 1)
+                layout.addWidget(self.first_input_surname, 0, 2)
+
+                self.second_input_name = QLineEdit()
+                self.second_input_surname = QLineEdit()
+
+                layout.addWidget(self.second_input_name, 1, 1)
+                layout.addWidget(self.second_input_surname, 1, 2)
+
+                self.check_relation_button = QPushButton("Check")
+                self.cancel_action_button = QPushButton("Cancel")
+
+                self.cancel_action_button.clicked.connect(self.cancel_action)
+
+                layout.addWidget(self.check_relation_button, 4, 0)
+                layout.addWidget(self.cancel_action_button, 4, 1)
+
+                self.setLayout(layout)
+
+            def cancel_action(self):
+                self.close()
+
+        if self.focused_window is None:
+            self.focused_window = AddRelationInfoWindow()
         self.focused_window.show()
 
     @pyqtSlot(QPushButton, bool)
@@ -171,7 +225,6 @@ class MainWindow(QMainWindow):
 
 
 class DraggableButton(QPushButton):
-
     source_signal = QtCore.pyqtSignal(QPushButton, bool)
 
     def mousePressEvent(self, event):
