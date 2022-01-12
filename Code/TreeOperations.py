@@ -1,60 +1,71 @@
+import json
+import os
 from datetime import datetime
 import sys
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
-    QMainWindow, QLabel, QGridLayout, QDateEdit, QLineEdit, QMessageBox, \
-    QHBoxLayout, QComboBox
-
-
-# This layout looks promising
-# https://www.geeksforgeeks.org/pyqt5-qdockwidget-setting-allowed-areas/?ref=rp
-
-# Draw line between rectangles
-# https://stackoverflow.com/questions/55078456/pyqt5-drawing-line
+from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, QMainWindow, QLabel, QGridLayout, QDateEdit, \
+    QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, QHBoxLayout, QComboBox
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        # ---------------------------- Special Class Variables ------------------------- #
         self.item_location_index = 0
         self.pos = None
         self.startPoint = None
         self.selected_object = None
         self.focused_window = None
+        self.data = None  # self.import_tree("Test")
 
-        self.resize(860, 600)
+        # ---------------------------- Main Window Properties ------------------------- #
+        self.resize(800, 600)
         self.init_ui()
-
         self.setAcceptDrops(True)
         self.show()
 
+    # noinspection PyAttributeOutsideInit
     def init_ui(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
-        self.label = QLabel(self.central_widget)
-        self.label.setGeometry(120, 0, 620, 620)
+        # ---------------------------- Tree Widget ---------------------------------- #
+        self.tree = QTreeWidget(parent=self.central_widget)
+        self.tree.setGeometry(QtCore.QRect(100, 0, 700, 700))
+        self.tree.setColumnCount(2)
+        self.tree.setHeaderLabels([" ", " "])
+        self.tree.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.tree.itemClicked.connect(self.item_selected)
 
-        canvas = QtGui.QPixmap(620, 620)
-        canvas.fill(QtGui.QColor("darkgray"))
-        self.label.setPixmap(canvas)
+        # ---------------------------- Create Tree Button --------------------------- #
+        self.new_tree_button = QPushButton(text="Create Tree", parent=self.central_widget)
+        self.new_tree_button.setGeometry(QtCore.QRect(0, 0, 100, 50))
+        self.new_tree_button.clicked.connect(self.new_tree_operation)
 
-        self.add_member_button = QPushButton(text="Add Member",
-                                             parent=self.central_widget)
-        self.add_member_button.setGeometry(QtCore.QRect(0, 0, 120, 120))
+        # ---------------------------- Import Tree Button --------------------------- #
+        self.import_tree_button = QPushButton(text="Import Tree", parent=self.central_widget)
+        self.import_tree_button.setGeometry(QtCore.QRect(0, 50, 100, 50))
+        self.import_tree_button.clicked.connect(self.import_tree)
+
+        # ---------------------------- Add Member Button ---------------------------- #
+        self.add_member_button = QPushButton(text="Add Member", parent=self.central_widget)
+        self.add_member_button.setGeometry(QtCore.QRect(0, 100, 100, 50))
+        self.add_member_button.setDisabled(True)
         self.add_member_button.clicked.connect(self.add_member_operation)
 
-        self.check_relation_button = QPushButton(text="Check Relation",
-                                                 parent=self.central_widget)
-        self.check_relation_button.setGeometry(QtCore.QRect(0, 120, 120, 120))
-        self.check_relation_button.clicked.connect(
-            self.check_relation_operation)
+        # ---------------------------- Check Relation Button ------------------------ #
+        self.check_relation_button = QPushButton(text="Check Relation", parent=self.central_widget)
+        self.check_relation_button.setGeometry(QtCore.QRect(0, 150, 100, 50))
+        self.check_relation_button.setDisabled(True)
+        self.check_relation_button.clicked.connect(self.check_relation_operation)
 
-        self.filter_button = QPushButton(text="Filter",
-                                         parent=self.central_widget)
-        self.filter_button.setGeometry(QtCore.QRect(0, 240, 120, 120))
+        # ---------------------------- Add Filter Button ---------------------------- #
+        self.filter_button = QPushButton(text="Filter", parent=self.central_widget)
+        self.filter_button.setGeometry(QtCore.QRect(0, 200, 100, 50))
+        self.filter_button.setDisabled(True)
         self.filter_button.clicked.connect(self.filter_operation)
 
     def dragEnterEvent(self, event):
@@ -80,33 +91,33 @@ class MainWindow(QMainWindow):
                 self.setWindowTitle("Add New Member")
                 self.setWindowModality(QtCore.Qt.ApplicationModal)
                 layout = QGridLayout()
+
+                # ---------------------------- Labels ------------------------------- #
                 layout.addWidget(QLabel("Name"), 0, 0)
                 layout.addWidget(QLabel("Surname"), 1, 0)
                 layout.addWidget(QLabel("Age*"), 2, 0)
                 layout.addWidget(QLabel("Birthday*"), 3, 0)
 
+                # ---------------------------- Input Fields ------------------------- #
                 self.input_name = QLineEdit()
                 self.input_surname = QLineEdit()
                 self.input_age = QLineEdit()
                 self.input_birthday = QDateEdit(calendarPopup=True)
-                self.input_birthday.setDateTime(
-                    QtCore.QDateTime(1900, 1, 1, 0, 0))
-
+                self.input_birthday.setDateTime(QtCore.QDateTime(1900, 1, 1, 0, 0))
                 layout.addWidget(self.input_name, 0, 1)
                 layout.addWidget(self.input_surname, 1, 1)
                 layout.addWidget(self.input_age, 2, 1)
                 layout.addWidget(self.input_birthday, 3, 1)
 
+                # ---------------------------- Confirmation Buttons ----------------- #
                 self.add_member_button = QPushButton("Add")
                 self.cancel_action_button = QPushButton("Cancel")
-
                 self.add_member_button.clicked.connect(self.emit_add_signal)
                 self.cancel_action_button.clicked.connect(self.cancel_action)
-
                 layout.addWidget(self.add_member_button, 4, 0)
                 layout.addWidget(self.cancel_action_button, 4, 1)
-                layout.addWidget(QLabel("* Optional"), 5, 0)
 
+                layout.addWidget(QLabel("* Optional"), 5, 0)
                 self.setLayout(layout)
 
             def emit_add_signal(self):
@@ -122,6 +133,7 @@ class MainWindow(QMainWindow):
                 birthday_datetime = datetime.strptime(birthday, "%d/%m/%Y")
                 datetime_control = datetime.strptime("02/01/1903", "%d/%m/%Y")
 
+                # ---------------------------- Input Validation --------------------- #
                 if not name.isalpha():
                     msg.setText("Name must only include letters.")
                     x = msg.exec_()
@@ -136,15 +148,16 @@ class MainWindow(QMainWindow):
                     msg.setText("Age must be non-negative integer value.")
                     x = msg.exec_()
                     return -1
-                if birthday_datetime < datetime_control:  # If older than oldest person alive
+
+                # If older than oldest person alive
+                if birthday_datetime < datetime_control:
                     birthday = None
                 elif birthday_datetime > datetime.now():
                     msg.setText("You cannot choose a date from the future.")
                     x = msg.exec_()
                     return -1
                 else:
-                    age = int(
-                        (datetime.now() - birthday_datetime).days / 365.2425)
+                    age = int((datetime.now() - birthday_datetime).days/365.2425)
 
                 new_member = {"name": name,
                               "surname": surname,
@@ -158,22 +171,28 @@ class MainWindow(QMainWindow):
 
         @pyqtSlot(dict)
         def add_member(member_dict):
-            print(member_dict)
+            # print(member_dict)
+            # ---------------------------- This part will change -------------------- #
             # noinspection PyArgumentList
-            push_button = DraggableButton(
-                text=f"{member_dict['name']}\n{member_dict['surname']}",
-                parent=self.central_widget,
-                objectName=f'push_button{self.item_location_index}')
-            push_button.setGeometry(
-                QtCore.QRect(700, self.item_location_index * 100, 100, 100))
+            push_button = DraggableButton(text=f"{member_dict['name']}\n{member_dict['surname']}",
+                                          parent=self.central_widget,
+                                          objectName=f'push_button{self.item_location_index}')
+            push_button.setGeometry(QtCore.QRect(700, self.item_location_index * 100, 100, 100))
             push_button.source_signal.connect(self.receive_button_name)
             self.item_location_index += 1
             push_button.show()
+            # ----------------------------------------------------------------------- #
 
         if self.focused_window is None:
             self.focused_window = AddPersonInfoWindow()
             self.focused_window.add_signal.connect(add_member)
         self.focused_window.show()
+
+    @pyqtSlot()
+    def new_tree_operation(self):
+        self.add_member_button.setEnabled(True)
+        self.check_relation_button.setEnabled(True)
+        self.filter_button.setEnabled(True)
 
     @pyqtSlot()
     def check_relation_operation(self):
@@ -228,6 +247,45 @@ class MainWindow(QMainWindow):
         elif self.selected_object != obj_name and self.selected_object is not None:
             print(f'Bound {self.selected_object} to {obj_name}')
             self.selected_object = None
+
+    @pyqtSlot()
+    def import_tree(self, family_name="Test"):
+
+        def initialize_data(current_node, parent_item=None):
+            parents = current_node['parents']
+            children = current_node['children']
+
+            member_pair = []
+            for parent in parents:
+                member_pair.append(f"{parent['name']} {parent['surname']}")
+
+            item = QTreeWidgetItem(member_pair)
+            item.setFlags(item.flags() | Qt.ItemIsSelectable)
+
+            if parent_item is None:
+                items.append(item)
+            else:
+                parent_item.addChild(item)
+
+            if children is None:
+                return
+            for child in children:
+                initialize_data(child, item)
+
+        if self.data is None:
+            with open(f"{os.getcwd()}/data/{family_name}.json") as tree_json:
+                self.data = json.load(tree_json)
+        items = []
+        [initialize_data(node) for node in self.data['family_members']]
+        self.tree.insertTopLevelItems(0, items)
+
+        self.add_member_button.setEnabled(True)
+        self.check_relation_button.setEnabled(True)
+        self.filter_button.setEnabled(True)
+
+    @pyqtSlot(QTreeWidgetItem, int)
+    def item_selected(self, selected_item, selected_index):
+        print(selected_item.text(selected_index))
 
     @pyqtSlot()
     def filter_operation(self):

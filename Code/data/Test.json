@@ -1,0 +1,57 @@
+{
+  "family_name": "KK",
+  "family_members": [
+    {
+      "parents": [
+        {
+          "name": "A",
+          "surname": "AA",
+          "age": 45,
+          "birthday": null,
+          "gender": "Male"
+        },
+        {
+          "name": "B",
+          "surname": "BB",
+          "age": 44,
+          "birthday": null,
+          "gender": "Female"
+        }
+      ],
+      "children": [
+        {
+          "parents": [
+            {
+              "name": "C",
+              "surname": "CC",
+              "age": 20,
+              "birthday": null,
+              "gender": "Male"
+            },
+            {
+              "name": "D",
+              "surname": "DD",
+              "age": 19,
+              "birthday": null,
+              "gender": "Female"
+            }
+          ],
+          "children": [
+            {
+              "parents": [
+                {
+                  "name": "E",
+                  "surname": "EE",
+                  "age": 1,
+                  "birthday": null,
+                  "gender": "Male"
+                }
+              ],
+              "children": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
