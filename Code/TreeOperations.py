@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
     QMainWindow, QLabel, QGridLayout, QDateEdit, \
     QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, \
     QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog
+from Code.Member import Member
 
 
 class MainWindow(QMainWindow):
@@ -15,27 +16,29 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # ---------------------------- Special Class Variables ------------------------- #
+        # ---------------------------- Special Class Variables ---------------------- #
         self.item_location_index = 0
         self.pos = None
         self.startPoint = None
         self.selected_object = None
         self.focused_window = None
-        self.data = None  # self.import_tree("Test")
+        self.data = None  # self.import_tree_operation("Test")
 
-        # ---------------------------- Main Window Properties ------------------------- #
+        # ---------------------------- Main Window Properties ----------------------- #
+        self.setWindowTitle("Family Tree Builder")
+        self.layout = QGridLayout()
         self.resize(800, 600)
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
         self.init_ui()
         self.setAcceptDrops(True)
         self.show()
 
     # noinspection PyAttributeOutsideInit
     def init_ui(self):
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
 
         # ---------------------------- Tree Widget ---------------------------------- #
-        self.tree = QTreeWidget(parent=self.central_widget)
+        self.tree = QTreeWidget()
         self.tree.setGeometry(QtCore.QRect(100, 0, 700, 700))
         self.tree.setColumnCount(2)
         self.tree.setHeaderLabels([" ", " "])
@@ -43,45 +46,45 @@ class MainWindow(QMainWindow):
         self.tree.itemClicked.connect(self.item_selected)
 
         # ---------------------------- Create Tree Button --------------------------- #
-        self.new_tree_button = QPushButton(text="Create Tree",
-                                           parent=self.central_widget)
-        self.new_tree_button.setGeometry(QtCore.QRect(0, 0, 100, 50))
-        self.new_tree_button.clicked.connect(self.new_tree_operation)
+        self.new_tree_button = QPushButton(text="Create Tree")
+        self.new_tree_button.clicked.connect(self.create_tree_operation)
 
         # ---------------------------- Import Tree Button --------------------------- #
-        self.import_tree_button = QPushButton(text="Import Tree",
-                                              parent=self.central_widget)
-        self.import_tree_button.setGeometry(QtCore.QRect(0, 50, 100, 50))
-        self.import_tree_button.clicked.connect(self.import_tree)
+        self.import_tree_button = QPushButton(text="Import Tree")
+        self.import_tree_button.clicked.connect(self.import_tree_operation)
+
+        # ---------------------------- Export Tree Button ---------------------------- #
+        self.export_tree_button = QPushButton(text="Export Tree")
+        self.export_tree_button.setDisabled(True)
+        self.export_tree_button.clicked.connect(self.export_tree)
 
         # ---------------------------- Add Member Button ---------------------------- #
-        self.add_member_button = QPushButton(text="Add Member",
-                                             parent=self.central_widget)
-        self.add_member_button.setGeometry(QtCore.QRect(0, 100, 100, 50))
+        self.add_member_button = QPushButton(text="Add Member")
         self.add_member_button.setDisabled(True)
         self.add_member_button.clicked.connect(self.add_member_operation)
 
         # ---------------------------- Check Relation Button ------------------------ #
-        self.check_relation_button = QPushButton(text="Check Relation",
-                                                 parent=self.central_widget)
-        self.check_relation_button.setGeometry(QtCore.QRect(0, 150, 100, 50))
+        self.check_relation_button = QPushButton(text="Check Relation")
         self.check_relation_button.setDisabled(True)
-        self.check_relation_button.clicked.connect(
-            self.check_relation_operation)
+        self.check_relation_button.clicked.connect(self.check_relation_operation)
 
         # ---------------------------- Add Filter Button ---------------------------- #
-        self.filter_button = QPushButton(text="Filter",
-                                         parent=self.central_widget)
-        self.filter_button.setGeometry(QtCore.QRect(0, 200, 100, 50))
+        self.filter_button = QPushButton(text="Filter")
         self.filter_button.setDisabled(True)
         self.filter_button.clicked.connect(self.filter_operation)
 
-        # ---------------------------- Export Tree Button ---------------------------- #
-        self.export_tree_button = QPushButton(text="Export Tree",
-                                              parent=self.central_widget)
-        self.export_tree_button.setGeometry(QtCore.QRect(0, 250, 100, 50))
-        self.export_tree_button.setDisabled(True)
-        self.export_tree_button.clicked.connect(self.export_tree)
+        # ---------------------------- Add Widgets To Layout ------------------------ #
+        self.layout.addWidget(self.tree, 0, 1, 8, 2)
+        self.layout.addWidget(self.new_tree_button, 0, 0)
+        self.layout.addWidget(self.import_tree_button, 1, 0)
+        self.layout.addWidget(self.export_tree_button, 2, 0)
+        self.layout.addWidget(self.add_member_button, 3, 0)
+        self.layout.addWidget(self.check_relation_button, 4, 0)
+        self.layout.addWidget(self.filter_button, 5, 0)
+
+        self.central_widget.setLayout(self.layout)
+
+
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('myApp/QtWidget'):
@@ -99,7 +102,8 @@ class MainWindow(QMainWindow):
     def add_member_operation(self):
 
         class AddPersonInfoWindow(QWidget):
-            add_signal = QtCore.pyqtSignal(dict)
+
+            add_signal = QtCore.pyqtSignal(Member)
 
             def __init__(self):
                 super().__init__()
@@ -118,8 +122,7 @@ class MainWindow(QMainWindow):
                 self.input_surname = QLineEdit()
                 self.input_age = QLineEdit()
                 self.input_birthday = QDateEdit(calendarPopup=True)
-                self.input_birthday.setDateTime(
-                    QtCore.QDateTime(1900, 1, 1, 0, 0))
+                self.input_birthday.setDateTime(QtCore.QDateTime(1900, 1, 1, 0, 0))
                 layout.addWidget(self.input_name, 0, 1)
                 layout.addWidget(self.input_surname, 1, 1)
                 layout.addWidget(self.input_age, 2, 1)
@@ -173,34 +176,22 @@ class MainWindow(QMainWindow):
                     x = msg.exec_()
                     return -1
                 else:
-                    age = int(
-                        (datetime.now() - birthday_datetime).days / 365.2425)
+                    age = int((datetime.now() - birthday_datetime).days/365.2425)
 
-                new_member = {"name": name,
-                              "surname": surname,
-                              "age": age,
-                              "birthday": birthday}
+                new_member = Member(name=name,
+                                    surname=surname,
+                                    age=age,
+                                    gender=None,
+                                    birthday=birthday)
                 self.add_signal.emit(new_member)
                 self.close()
 
             def cancel_action(self):
                 self.close()
 
-        @pyqtSlot(dict)
-        def add_member(member_dict):
-            # print(member_dict)
-            # ---------------------------- This part will change -------------------- #
-            # noinspection PyArgumentList
-            push_button = DraggableButton(
-                text=f"{member_dict['name']}\n{member_dict['surname']}",
-                parent=self.central_widget,
-                objectName=f'push_button{self.item_location_index}')
-            push_button.setGeometry(
-                QtCore.QRect(700, self.item_location_index * 100, 100, 100))
-            push_button.source_signal.connect(self.receive_button_name)
-            self.item_location_index += 1
-            push_button.show()
-            # ----------------------------------------------------------------------- #
+        @pyqtSlot(Member)
+        def add_member(member):
+            self.tree.insertTopLevelItem(0, QTreeWidgetItem([str(member)]))
 
         if self.focused_window is None or self.focused_window != AddPersonInfoWindow():
             self.focused_window = AddPersonInfoWindow()
@@ -208,7 +199,7 @@ class MainWindow(QMainWindow):
         self.focused_window.show()
 
     @pyqtSlot()
-    def new_tree_operation(self):
+    def create_tree_operation(self):
         self.add_member_button.setEnabled(True)
         self.check_relation_button.setEnabled(True)
         self.filter_button.setEnabled(True)
@@ -345,19 +336,8 @@ class MainWindow(QMainWindow):
             self.focused_window = AddRelationInfoWindow()
         self.focused_window.show()
 
-    @pyqtSlot(QPushButton, bool)
-    def receive_button_name(self, source, is_first_target):
-        obj_name = source.objectName()
-        obj_pos = source.pos()
-        if self.selected_object is None and is_first_target:
-            print(f'Selected: {obj_name}')
-            self.selected_object = obj_name
-        elif self.selected_object != obj_name and self.selected_object is not None:
-            print(f'Bound {self.selected_object} to {obj_name}')
-            self.selected_object = None
-
     @pyqtSlot()
-    def import_tree(self, family_name="Test"):
+    def import_tree_operation(self, family_name="Test"):
 
         def initialize_data(current_node, parent_item=None):
             parents = current_node['parents']
@@ -399,55 +379,8 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QTreeWidgetItem, int)
     def item_selected(self, selected_item, selected_index):
-        print(selected_item.text(selected_index))
-
-
-class DraggableButton(QPushButton):
-    source_signal = QtCore.pyqtSignal(QPushButton, bool)
-
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if event.button() == QtCore.Qt.RightButton:
-            self.right_click_dropdown(event)
-        elif event.button() == QtCore.Qt.LeftButton:
-            self.mouse_pos = event.pos()
-            self.source_signal.emit(self, False)
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == QtCore.Qt.LeftButton:
-            mime_data = QtCore.QMimeData()
-            byte_array = QtCore.QByteArray()
-            stream = QtCore.QDataStream(byte_array, QtCore.QIODevice.WriteOnly)
-
-            stream.writeQString(self.objectName())
-            stream.writeQVariant(self.mouse_pos)
-
-            mime_data.setData('myApp/QtWidget', byte_array)
-            drag = QtGui.QDrag(self)
-
-            drag.setPixmap(self.grab())
-            drag.setMimeData(mime_data)
-
-            drag.setHotSpot(self.mouse_pos - self.rect().topLeft())
-            drag.exec_()
-
-    def right_click_dropdown(self, event):
-        if event.buttons() == QtCore.Qt.RightButton:
-            context_menu = QMenu(self)
-
-            sub_menu = QMenu(context_menu)
-            sub_menu.setTitle("Create Relation")
-
-            bind_parent = sub_menu.addAction("Parent")
-            bind_child = sub_menu.addAction("Child")
-
-            context_menu.addMenu(sub_menu)
-            action = context_menu.exec_(self.mapToGlobal(event.pos()))
-
-            if action == bind_parent:
-                self.source_signal.emit(self, True)
-            elif action == bind_child:
-                self.source_signal.emit(self, True)
+        # print(selected_item.text(selected_index))
+        pass
 
 
 if __name__ == '__main__':
