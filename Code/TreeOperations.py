@@ -4,8 +4,10 @@ from datetime import datetime
 import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSlot, Qt
-from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, QMainWindow, QLabel, QGridLayout, QDateEdit, \
-    QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, QHBoxLayout, QComboBox
+from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
+    QMainWindow, QLabel, QGridLayout, QDateEdit, \
+    QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, \
+    QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog
 
 
 class MainWindow(QMainWindow):
@@ -41,32 +43,45 @@ class MainWindow(QMainWindow):
         self.tree.itemClicked.connect(self.item_selected)
 
         # ---------------------------- Create Tree Button --------------------------- #
-        self.new_tree_button = QPushButton(text="Create Tree", parent=self.central_widget)
+        self.new_tree_button = QPushButton(text="Create Tree",
+                                           parent=self.central_widget)
         self.new_tree_button.setGeometry(QtCore.QRect(0, 0, 100, 50))
         self.new_tree_button.clicked.connect(self.new_tree_operation)
 
         # ---------------------------- Import Tree Button --------------------------- #
-        self.import_tree_button = QPushButton(text="Import Tree", parent=self.central_widget)
+        self.import_tree_button = QPushButton(text="Import Tree",
+                                              parent=self.central_widget)
         self.import_tree_button.setGeometry(QtCore.QRect(0, 50, 100, 50))
         self.import_tree_button.clicked.connect(self.import_tree)
 
         # ---------------------------- Add Member Button ---------------------------- #
-        self.add_member_button = QPushButton(text="Add Member", parent=self.central_widget)
+        self.add_member_button = QPushButton(text="Add Member",
+                                             parent=self.central_widget)
         self.add_member_button.setGeometry(QtCore.QRect(0, 100, 100, 50))
         self.add_member_button.setDisabled(True)
         self.add_member_button.clicked.connect(self.add_member_operation)
 
         # ---------------------------- Check Relation Button ------------------------ #
-        self.check_relation_button = QPushButton(text="Check Relation", parent=self.central_widget)
+        self.check_relation_button = QPushButton(text="Check Relation",
+                                                 parent=self.central_widget)
         self.check_relation_button.setGeometry(QtCore.QRect(0, 150, 100, 50))
         self.check_relation_button.setDisabled(True)
-        self.check_relation_button.clicked.connect(self.check_relation_operation)
+        self.check_relation_button.clicked.connect(
+            self.check_relation_operation)
 
         # ---------------------------- Add Filter Button ---------------------------- #
-        self.filter_button = QPushButton(text="Filter", parent=self.central_widget)
+        self.filter_button = QPushButton(text="Filter",
+                                         parent=self.central_widget)
         self.filter_button.setGeometry(QtCore.QRect(0, 200, 100, 50))
         self.filter_button.setDisabled(True)
         self.filter_button.clicked.connect(self.filter_operation)
+
+        # ---------------------------- Export Tree Button ---------------------------- #
+        self.export_tree_button = QPushButton(text="Export Tree",
+                                              parent=self.central_widget)
+        self.export_tree_button.setGeometry(QtCore.QRect(0, 250, 100, 50))
+        self.export_tree_button.setDisabled(True)
+        self.export_tree_button.clicked.connect(self.export_tree)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat('myApp/QtWidget'):
@@ -103,7 +118,8 @@ class MainWindow(QMainWindow):
                 self.input_surname = QLineEdit()
                 self.input_age = QLineEdit()
                 self.input_birthday = QDateEdit(calendarPopup=True)
-                self.input_birthday.setDateTime(QtCore.QDateTime(1900, 1, 1, 0, 0))
+                self.input_birthday.setDateTime(
+                    QtCore.QDateTime(1900, 1, 1, 0, 0))
                 layout.addWidget(self.input_name, 0, 1)
                 layout.addWidget(self.input_surname, 1, 1)
                 layout.addWidget(self.input_age, 2, 1)
@@ -157,7 +173,8 @@ class MainWindow(QMainWindow):
                     x = msg.exec_()
                     return -1
                 else:
-                    age = int((datetime.now() - birthday_datetime).days/365.2425)
+                    age = int(
+                        (datetime.now() - birthday_datetime).days / 365.2425)
 
                 new_member = {"name": name,
                               "surname": surname,
@@ -174,16 +191,18 @@ class MainWindow(QMainWindow):
             # print(member_dict)
             # ---------------------------- This part will change -------------------- #
             # noinspection PyArgumentList
-            push_button = DraggableButton(text=f"{member_dict['name']}\n{member_dict['surname']}",
-                                          parent=self.central_widget,
-                                          objectName=f'push_button{self.item_location_index}')
-            push_button.setGeometry(QtCore.QRect(700, self.item_location_index * 100, 100, 100))
+            push_button = DraggableButton(
+                text=f"{member_dict['name']}\n{member_dict['surname']}",
+                parent=self.central_widget,
+                objectName=f'push_button{self.item_location_index}')
+            push_button.setGeometry(
+                QtCore.QRect(700, self.item_location_index * 100, 100, 100))
             push_button.source_signal.connect(self.receive_button_name)
             self.item_location_index += 1
             push_button.show()
             # ----------------------------------------------------------------------- #
 
-        if self.focused_window is None:
+        if self.focused_window is None or self.focused_window != AddPersonInfoWindow():
             self.focused_window = AddPersonInfoWindow()
             self.focused_window.add_signal.connect(add_member)
         self.focused_window.show()
@@ -193,6 +212,95 @@ class MainWindow(QMainWindow):
         self.add_member_button.setEnabled(True)
         self.check_relation_button.setEnabled(True)
         self.filter_button.setEnabled(True)
+        self.export_tree_button.setEnabled(True)
+
+    @pyqtSlot()
+    def filter_operation(self):
+        class FilterInfoWindow(QDialog):
+            add_signal = QtCore.pyqtSignal()
+
+            def __init__(self, name="filter", filters=None):
+                super(FilterInfoWindow, self).__init__()
+                self.name = name
+                self.list = QListWidget()
+                self.title = "Please enter filter: "
+
+                self.setWindowModality(QtCore.Qt.ApplicationModal)
+
+                if filters is not None:
+                    self.list.addItems(filters)
+                    self.list.setCurrentRow(0)
+
+                vertical_layout = QVBoxLayout()
+
+                # code down below may get deleted in the future
+                # ---------------------------------------------------
+                markdown_list = QVBoxLayout()
+
+                self.setWindowTitle("Add or Remove Filter")
+                self.box = QComboBox()
+                self.box.addItem("Age")
+                self.box.addItem("Gender")
+                self.box.addItem("Birthday")
+
+                markdown_list.addWidget(self.box)
+                # ---------------------------------------------------
+
+                self.add_button = QPushButton("Add")
+                self.edit_button = QPushButton("Edit")
+                self.remove_button = QPushButton("Remove")
+                self.close_button = QPushButton("Close")
+
+                vertical_layout.addWidget(self.add_button)
+                vertical_layout.addWidget(self.edit_button)
+                vertical_layout.addWidget(self.remove_button)
+                vertical_layout.addWidget(self.close_button)
+
+                self.add_button.clicked.connect(self.add_operation)
+                self.edit_button.clicked.connect(self.edit_operation)
+                self.remove_button.clicked.connect(self.remove_operation)
+                self.close_button.clicked.connect(self.close_operation)
+
+                horizontal_layout = QHBoxLayout()
+                horizontal_layout.addWidget(self.list)
+                horizontal_layout.addLayout(vertical_layout)
+                horizontal_layout.addLayout(markdown_list)
+                self.setWindowTitle("Filters")
+                self.setLayout(horizontal_layout)
+
+            def add_operation(self):
+                row = self.list.currentRow()
+                string, ok = QInputDialog.getText(self, "Add Filter",
+                                                  self.title)
+                if ok and string is not None:
+                    self.list.insertItem(row, string)
+
+            def edit_operation(self):
+                row = self.list.currentRow()
+                filter_ = self.list.item(row)
+                if filter_ is not None:
+                    filter_name, ok = QInputDialog.getText(self, "Edit Filter",
+                                                           self.title,
+                                                           QLineEdit.Normal,
+                                                           filter_.text())
+                    if ok and filter_name is not None:
+                        filter_.setText(filter_name)
+
+            def remove_operation(self):
+                row = self.list.currentRow()
+                filter_ = self.list.item(row)
+                if filter_ is None:
+                    return
+                else:
+                    filter_ = self.list.takeItem(row)
+                    del filter_
+
+            def close_operation(self):
+                self.close()
+
+        if self.focused_window is None or self.focused_window != FilterInfoWindow():
+            self.focused_window = FilterInfoWindow()
+        self.focused_window.show()
 
     @pyqtSlot()
     def check_relation_operation(self):
@@ -233,7 +341,7 @@ class MainWindow(QMainWindow):
             def cancel_action(self):
                 self.close()
 
-        if self.focused_window is None:
+        if self.focused_window is None or self.focused_window != AddRelationInfoWindow():
             self.focused_window = AddRelationInfoWindow()
         self.focused_window.show()
 
@@ -283,47 +391,15 @@ class MainWindow(QMainWindow):
         self.check_relation_button.setEnabled(True)
         self.filter_button.setEnabled(True)
 
+    @pyqtSlot()
+    def export_tree(self):
+        # this is just a template for the main window
+        # directory view will be implemented later
+        pass
+
     @pyqtSlot(QTreeWidgetItem, int)
     def item_selected(self, selected_item, selected_index):
         print(selected_item.text(selected_index))
-
-    @pyqtSlot()
-    def filter_operation(self):
-
-        class FilterWindow(QWidget):
-            add_signal = QtCore.pyqtSignal()
-
-            def __init__(self):
-                super(FilterWindow, self).__init__()
-                self.setWindowModality(QtCore.Qt.ApplicationModal)
-                layout = QHBoxLayout()
-
-                self.setWindowTitle("Add or Remove Filter")
-                self.box = QComboBox()
-                self.box.addItem("Age")
-                self.box.addItem("Gender")
-                self.box.addItem("Birthday")
-
-                layout.addWidget(self.box)
-
-                self.add_filter_button = QPushButton("Add")
-                self.remove_filter_button = QPushButton("Remove")
-                self.cancel_action_button = QPushButton("Cancel")
-
-                self.cancel_action_button.clicked.connect(self.cancel_action)
-
-                layout.addWidget(self.add_filter_button)
-                layout.addWidget(self.remove_filter_button)
-                layout.addWidget(self.cancel_action_button)
-
-                self.setLayout(layout)
-
-            def cancel_action(self):
-                self.close()
-
-        if self.focused_window is None:
-            self.focused_window = FilterWindow()
-        self.focused_window.show()
 
 
 class DraggableButton(QPushButton):
