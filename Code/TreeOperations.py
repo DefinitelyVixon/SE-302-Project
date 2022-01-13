@@ -92,19 +92,14 @@ class MainWindow(QMainWindow):
 
         self.name_info = QLineEdit("Name")
         self.name_info.setDisabled(True)
-        self.name_info.setObjectName("name_info")
         self.surname_info = QLineEdit("Surname")
         self.surname_info.setDisabled(True)
-        self.surname_info.setObjectName("surname_info")
         self.age_info = QLineEdit("Age")
         self.age_info.setDisabled(True)
-        self.age_info.setObjectName("age_info")
         self.birthday_info = QLineEdit("Birthday")
         self.birthday_info.setDisabled(True)
-        self.birthday_info.setObjectName("birthday_info")
         self.gender_info = QLineEdit("Gender")
         self.gender_info.setDisabled(True)
-        self.gender_info.setObjectName("gender_info")
         member_info_layout.addWidget(self.name_info, 0, 1)
         member_info_layout.addWidget(self.surname_info, 1, 1)
         member_info_layout.addWidget(self.age_info, 2, 1)
@@ -278,10 +273,10 @@ class MainWindow(QMainWindow):
                 for member_node in self.data["family_members"]:
                     find_member_to_add_on(member_node)
             elif relation == "Spouse":
-                pass
+                self.selected_member.setText(1, member.full_name())
+                self.selected_member.setToolTip(1, str(member.member_id))
             self.id_counter += 1
 
-        print(self.data)
         if self.focused_window is None or self.focused_window != AddPersonInfoWindow():
             self.focused_window = AddPersonInfoWindow()
             self.focused_window.add_signal.connect(add_member)
@@ -290,6 +285,31 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def create_tree_operation(self):
+        try:
+            if os.path.isfile(self.active_tree_path):
+                msg = QMessageBox()
+                msg.setWindowTitle("Warning")
+                msg.setIcon(QMessageBox.Warning)
+                msg.setText("Do you want to save your changes made on the currently active tree?")
+                msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                x = msg.exec_()
+                if x == QMessageBox.Yes:
+                    with open(self.source_tree_path, 'w+') as tree_json:
+                        json.dump(self.data, tree_json)
+                    self.active_tree_path = None
+                    self.source_tree_path = None
+                    self.data = None
+                    self.tree.clear()
+                elif x == QMessageBox.No:
+                    self.active_tree_path = None
+                    self.source_tree_path = None
+                    self.data = None
+                    self.tree.clear()
+                elif x == QMessageBox.Cancel:
+                    msg.close()
+        except TypeError:
+            pass
+
         family_name, ok = QInputDialog.getText(self, "Family Name", "Create Tree")
         if family_name.isalpha():
             with open(self.draft_path, mode="w+") as draft_json:
@@ -587,6 +607,27 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QTreeWidgetItem, int)
     def item_selected(self, selected_item, selected_index):
+        member_id = int(selected_item.toolTip(selected_index))
+
+        def find_member(current_node):
+            parents = current_node['parents']
+            children = current_node['children']
+            for node in parents:
+                if member_id == node["id"]:
+                    self.name_info.setText(node["name"])
+                    self.surname_info.setText(node["surname"])
+                    self.age_info.setText(str(node["age"]))
+                    self.birthday_info.setText(node["birthday"])
+                    self.gender_info.setText(node["gender"])
+                    return
+            if children is None:
+                return
+            for child_ in children:
+                find_member(child_)
+
+        for member_node in self.data['family_members']:
+            find_member(member_node)
+
         if self.selected_member == selected_item:
             self.selected_member = None
             self.tree.setCurrentItem(None)
