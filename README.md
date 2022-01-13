@@ -22,7 +22,7 @@
   + [ ] User(s) should be able to merge two family trees into one.
   + [X] User(s) should be able to import or export a family tree as raw data
   to load or save the tree respectively.
-  + [ ] User(s) should be able to create an image file of their family trees.
+  + [X] User(s) should be able to create an image file of their family trees.
   + [ ] User(s) should be able to undo/redo the changes made in the
   current session.
   + [ ] The program shall warn the user(s) if they are trying to delete a
