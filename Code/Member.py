@@ -7,7 +7,8 @@ class Gender(enum.Enum):
     NonBinary = 3
 
 class Member:
-    def __init__(self, name: str, surname: str, age: int, birthday=None, gender=None):
+    def __init__(self, name: str, surname: str, age: int, birthday=None, gender=None, member_id=0):
+        self.member_id = member_id
         self.name = name
         self.surname = surname
         self.age = age

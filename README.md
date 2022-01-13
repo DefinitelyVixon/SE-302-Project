@@ -10,7 +10,7 @@
 + [X] ~~Requirements Document~~
 + [X] ~~Design Document~~
 + [ ] Project Delivery
-  + [ ] User(s) should be able to create new family trees.
+  + [X] User(s) should be able to create new family trees.
   + [X] User(s) should be able to add new family members with their name,
   surname, age, and birthday (optional) information.
   + [ ] User(s) should be able to search family members by filtering their
@@ -30,8 +30,5 @@
   + [ ] The program shall list the recent files.
   + [ ] The program shall be able to highlight the changes that were made
   in the current session before saving.
-  + [ ] The program shall keep the latest changes as a draft if user(s) closes
+  + [X] The program shall keep the latest changes as a draft if user(s) closes
   the program without saving.
-
-
-
