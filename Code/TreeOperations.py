@@ -7,7 +7,7 @@ from PyQt5.QtCore import pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, \
     QMainWindow, QLabel, QGridLayout, QDateEdit, \
     QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, \
-    QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog, QFileDialog
+    QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog, QFileDialog, QFrame, QSizePolicy
 from Member import Member
 
 
@@ -74,14 +74,44 @@ class MainWindow(QMainWindow):
         self.tree = QTreeWidget()
         self.tree.setColumnCount(2)
         self.tree.setHeaderLabels([" ", " "])
+        self.tree.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding))
         self.tree.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.tree.itemClicked.connect(self.item_selected)
         self.set_button_states(mode="disabled")
         self.import_tree_operation(import_on_load=True)
 
         # ---------------------------- Member Info Tab ------------------------------ #
-        self.member_info_widget = QWidget()
-        self.member_info_widget.setVisible(False)
+        self.member_info_frame = QFrame()
+        self.member_info_frame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        member_info_layout = QGridLayout()
+        member_info_layout.addWidget(QLabel("Name"), 0, 0)
+        member_info_layout.addWidget(QLabel("Surname"), 1, 0)
+        member_info_layout.addWidget(QLabel("Age"), 2, 0)
+        member_info_layout.addWidget(QLabel("Birthday"), 3, 0)
+        member_info_layout.addWidget(QLabel("Gender"), 4, 0)
+
+        self.name_info = QLineEdit("Name")
+        self.name_info.setDisabled(True)
+        self.name_info.setObjectName("name_info")
+        self.surname_info = QLineEdit("Surname")
+        self.surname_info.setDisabled(True)
+        self.surname_info.setObjectName("surname_info")
+        self.age_info = QLineEdit("Age")
+        self.age_info.setDisabled(True)
+        self.age_info.setObjectName("age_info")
+        self.birthday_info = QLineEdit("Birthday")
+        self.birthday_info.setDisabled(True)
+        self.birthday_info.setObjectName("birthday_info")
+        self.gender_info = QLineEdit("Gender")
+        self.gender_info.setDisabled(True)
+        self.gender_info.setObjectName("gender_info")
+        member_info_layout.addWidget(self.name_info, 0, 1)
+        member_info_layout.addWidget(self.surname_info, 1, 1)
+        member_info_layout.addWidget(self.age_info, 2, 1)
+        member_info_layout.addWidget(self.birthday_info, 3, 1)
+        member_info_layout.addWidget(self.gender_info, 4, 1)
+
+        self.member_info_frame.setLayout(member_info_layout)
 
         # ---------------------------- Add Widgets To Layout ------------------------ #
         self.layout.addWidget(self.tree, 0, 1, 8, 2)
@@ -92,6 +122,7 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.check_relation_button, 4, 0)
         self.layout.addWidget(self.filter_button, 5, 0)
         self.layout.addWidget(self.save_as_image_button, 6, 0)
+        self.layout.addWidget(self.member_info_frame, 0, 3, 5, 1)
 
         self.central_widget.setLayout(self.layout)
 
@@ -101,6 +132,7 @@ class MainWindow(QMainWindow):
         class AddPersonInfoWindow(QWidget):
 
             add_signal = QtCore.pyqtSignal(Member, QTreeWidgetItem, str)
+            add_top_signal = QtCore.pyqtSignal(Member, str)
 
             def __init__(self):
                 super().__init__()
@@ -127,7 +159,7 @@ class MainWindow(QMainWindow):
                 self.input_connection.setDisabled(True)
                 self.input_connection.setText(self.parent_text)
                 self.input_relation = QComboBox()
-                self.input_relation.addItems(["Parent", "Child", "Spouse"])
+                self.input_relation.addItems(["Child", "Spouse"])
                 self.input_name = QLineEdit()
                 self.input_surname = QLineEdit()
                 self.input_age = QLineEdit()
@@ -202,11 +234,23 @@ class MainWindow(QMainWindow):
                                     gender=gender,
                                     birthday=birthday)
 
-                self.add_signal.emit(new_member, self.parent, relation)
+                if self.parent is None:
+                    self.add_top_signal.emit(new_member, relation)
+                else:
+                    self.add_signal.emit(new_member, self.parent, relation)
                 self.close()
 
             def cancel_action(self):
                 self.close()
+
+        @pyqtSlot(Member, str)
+        def add_member_top(member, relation):
+            child = QTreeWidgetItem([member.full_name()])
+            child.setFlags(child.flags() | Qt.ItemIsSelectable)
+            child.setToolTip(0, str(member.member_id))
+            self.tree.insertTopLevelItem(0, child)
+            self.data["family_members"].append({"parents": [member.to_dict()], "children": None})
+            self.id_counter += 1
 
         @pyqtSlot(Member, QTreeWidgetItem, str)
         def add_member(member, add_member_on, relation):
@@ -217,32 +261,31 @@ class MainWindow(QMainWindow):
                 children = current_node['children']
 
                 if int(add_member_on_id) in [x["id"] for x in parents]:
-                    children.append({"parents": [child], "children": None})
+                    if children is None:
+                        children = []
+                    children.append({"parents": [member.to_dict()], "children": None})
                     return
                 if children is None:
                     return
                 for child_ in children:
                     find_member_to_add_on(child_)
 
-            if add_member_on is None:
-                self.tree.insertTopLevelItem(0, QTreeWidgetItem([str(member)]))
-
-            elif relation == "Child":
+            if relation == "Child":
                 child = QTreeWidgetItem([member.full_name()])
                 child.setFlags(child.flags() | Qt.ItemIsSelectable)
                 child.setToolTip(0, str(member.member_id))
                 add_member_on.addChild(child)
-
-                for member in self.data["family_members"]:
-                    find_member_to_add_on(member)
-                self.id_counter += 1
-
+                for member_node in self.data["family_members"]:
+                    find_member_to_add_on(member_node)
             elif relation == "Spouse":
                 pass
+            self.id_counter += 1
 
+        print(self.data)
         if self.focused_window is None or self.focused_window != AddPersonInfoWindow():
             self.focused_window = AddPersonInfoWindow()
             self.focused_window.add_signal.connect(add_member)
+            self.focused_window.add_top_signal.connect(add_member_top)
         self.focused_window.show()
 
     @pyqtSlot()
@@ -250,7 +293,7 @@ class MainWindow(QMainWindow):
         family_name, ok = QInputDialog.getText(self, "Family Name", "Create Tree")
         if family_name.isalpha():
             with open(self.draft_path, mode="w+") as draft_json:
-                draft_data = {"family_name": family_name, "family_members": None}
+                draft_data = {"family_name": family_name, "family_members": []}
                 json.dump(draft_data, draft_json)
             self.active_tree_path = self.draft_path
             self.set_button_states(mode="enabled")
@@ -549,7 +592,6 @@ class MainWindow(QMainWindow):
             self.tree.setCurrentItem(None)
         else:
             self.selected_member = selected_item
-            # print(f'{self.selected_member.text(selected_index)}: {self.selected_member.toolTip(selected_index)}')
 
     def set_button_states(self, mode):
         if mode == "enabled":
