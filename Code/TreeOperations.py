@@ -193,7 +193,7 @@ class MainWindow(QMainWindow):
                     x = msg.exec_()
                     return -1
                 else:
-                    age = int((datetime.now() - birthday_datetime).days/365.2425)
+                    age = int((datetime.now() - birthday_datetime).days / 365.2425)
 
                 new_member = Member(member_id=id_counter,
                                     name=name,
@@ -275,18 +275,13 @@ class MainWindow(QMainWindow):
 
                 vertical_layout = QVBoxLayout()
 
-                # code down below may get deleted in the future
-                # ---------------------------------------------------
-                markdown_list = QVBoxLayout()
-
                 self.setWindowTitle("Add or Remove Filter")
                 self.box = QComboBox()
                 self.box.addItem("Age")
                 self.box.addItem("Gender")
                 self.box.addItem("Birthday")
 
-                markdown_list.addWidget(self.box)
-                # ---------------------------------------------------
+                vertical_layout.addWidget(self.box)
 
                 self.add_button = QPushButton("Add")
                 self.edit_button = QPushButton("Edit")
@@ -306,27 +301,68 @@ class MainWindow(QMainWindow):
                 horizontal_layout = QHBoxLayout()
                 horizontal_layout.addWidget(self.list)
                 horizontal_layout.addLayout(vertical_layout)
-                horizontal_layout.addLayout(markdown_list)
                 self.setWindowTitle("Filters")
                 self.setLayout(horizontal_layout)
 
             def add_operation(self):
                 row = self.list.currentRow()
-                string, ok = QInputDialog.getText(self, "Add Filter",
-                                                  self.title)
-                if ok and string is not None:
-                    self.list.insertItem(row, string)
+
+                # if the markdown selection is age
+                if self.box.currentText() == "Age":
+                    integer, ok = QInputDialog.getInt(window, "Input Integer", "Number:",
+                                                      10, 0, 100, 1)
+                    if ok and integer is not None:
+                        self.list.insertItem(row, f"{str(self.box.currentText())}: {integer}")
+
+                # if the markdown selection is gender
+                elif self.box.currentText() == "Gender":
+
+                    # -----input validation for multiple gender filters------
+                    male_count = self.list.findItems("Gender: Male", QtCore.Qt.MatchExactly)
+                    female_count = self.list.findItems("Gender: Female", QtCore.Qt.MatchExactly)
+                    if not len(male_count) > 0 and not len(female_count) > 0:
+                        options = ("Male", "Female")
+                        string, ok = QInputDialog.getItem(window, "Select Gender", "Option:",
+                                                          options, 0, False)
+                        if ok and string is not None:
+                            self.list.insertItem(row, f"{str(self.box.currentText())}: {string}")
+                    else:  # error message box for multiple gender filter validation
+                        msg = QMessageBox()
+                        msg.setWindowTitle("Warning")
+                        msg.setIcon(QMessageBox.Warning)
+                        msg.setText("You cannot add multiple gender filters.")
+                        msg.exec()
+
+                # if the markdown selection is birthday
+                elif self.box.currentText() == "Birthday":
+                    string, ok = QInputDialog.getText(self, "Add Filter",
+                                                      self.title)
+                    if ok and string is not None:
+                        self.list.insertItem(row, f"{str(self.box.currentText())}: {string}")
 
             def edit_operation(self):
                 row = self.list.currentRow()
                 filter_ = self.list.item(row)
                 if filter_ is not None:
-                    filter_name, ok = QInputDialog.getText(self, "Edit Filter",
-                                                           self.title,
-                                                           QLineEdit.Normal,
-                                                           filter_.text())
-                    if ok and filter_name is not None:
-                        filter_.setText(filter_name)
+                    if filter_.text().startswith("Age"):
+                        filter_name, ok = QInputDialog.getInt(window, "Input Integer", "Number:",
+                                                              10, 0, 100, 1)
+                        if ok and filter_name is not None:
+                            filter_.setText(f"Age: {filter_name}")
+
+                    elif filter_.text().startswith("Gender"):
+                        options = ("Male", "Female")
+                        filter_name, ok = QInputDialog.getItem(window, "Select Gender", "Option:",
+                                                               options, 0, False)
+                        if ok and filter_name is not None:
+                            filter_.setText(f"Gender: {filter_name}")
+
+                    elif filter_.text().startswith("Birthday: "):
+                        filter_name, ok = QInputDialog.getText(self, "Add Filter",
+                                                               self.title)
+
+                        if ok and filter_name is not None:
+                            filter_.setText(f"Birthday: {filter_name}")
 
             def remove_operation(self):
                 row = self.list.currentRow()
@@ -355,28 +391,30 @@ class MainWindow(QMainWindow):
                 self.setWindowTitle("Check Relation")
                 self.setWindowModality(QtCore.Qt.ApplicationModal)
                 layout = QGridLayout()
-                layout.addWidget(QLabel("First Person"), 0, 0)
-                layout.addWidget(QLabel("Second Person"), 1, 0)
+                layout.addWidget(QLabel("Name: "), 0, 0)
+                layout.addWidget(QLabel("Name: "), 1, 0)
+                layout.addWidget(QLabel("Surname: "), 0, 2)
+                layout.addWidget(QLabel("Surname: "), 1, 2)
 
                 self.first_input_name = QLineEdit()
                 self.first_input_surname = QLineEdit()
 
                 layout.addWidget(self.first_input_name, 0, 1)
-                layout.addWidget(self.first_input_surname, 0, 2)
+                layout.addWidget(self.first_input_surname, 0, 3)
 
                 self.second_input_name = QLineEdit()
                 self.second_input_surname = QLineEdit()
 
                 layout.addWidget(self.second_input_name, 1, 1)
-                layout.addWidget(self.second_input_surname, 1, 2)
+                layout.addWidget(self.second_input_surname, 1, 3)
 
                 self.check_relation_button = QPushButton("Check")
                 self.cancel_action_button = QPushButton("Cancel")
 
                 self.cancel_action_button.clicked.connect(self.cancel_action)
 
-                layout.addWidget(self.check_relation_button, 4, 0)
-                layout.addWidget(self.cancel_action_button, 4, 1)
+                layout.addWidget(self.check_relation_button, 4, 2)
+                layout.addWidget(self.cancel_action_button, 4, 3)
 
                 self.setLayout(layout)
 
