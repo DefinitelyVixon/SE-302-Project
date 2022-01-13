@@ -2,13 +2,13 @@ import json
 import os
 from datetime import datetime
 import sys
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSlot, Qt
-from PyQt5.QtWidgets import QMenu, QWidget, QPushButton, QApplication, \
+from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, \
     QMainWindow, QLabel, QGridLayout, QDateEdit, \
     QLineEdit, QMessageBox, QTreeWidgetItem, QAbstractItemView, QTreeWidget, \
-    QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog
-from Code.Member import Member
+    QHBoxLayout, QComboBox, QDialog, QListWidget, QVBoxLayout, QInputDialog, QFileDialog
+from Member import Member
 
 
 class MainWindow(QMainWindow):
@@ -17,12 +17,15 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # ---------------------------- Special Class Variables ---------------------- #
-        self.item_location_index = 0
-        self.pos = None
-        self.startPoint = None
         self.selected_object = None
         self.focused_window = None
-        self.data = None  # self.import_tree_operation("Test")
+        self.config_file_path = f'{os.getcwd()}/data/config.json'
+
+        # ---------------------------- App Configuration ---------------------------- #
+        with open(self.config_file_path) as config_json:
+            config_file = json.load(config_json)
+            self.active_tree_path = config_file['active_tree_path']
+            self.id_counter = config_file['global_id_counter']
 
         # ---------------------------- Main Window Properties ----------------------- #
         self.setWindowTitle("Family Tree Builder")
@@ -36,14 +39,6 @@ class MainWindow(QMainWindow):
 
     # noinspection PyAttributeOutsideInit
     def init_ui(self):
-
-        # ---------------------------- Tree Widget ---------------------------------- #
-        self.tree = QTreeWidget()
-        self.tree.setGeometry(QtCore.QRect(100, 0, 700, 700))
-        self.tree.setColumnCount(2)
-        self.tree.setHeaderLabels([" ", " "])
-        self.tree.setSelectionBehavior(QAbstractItemView.SelectItems)
-        self.tree.itemClicked.connect(self.item_selected)
 
         # ---------------------------- Create Tree Button --------------------------- #
         self.new_tree_button = QPushButton(text="Create Tree")
@@ -73,6 +68,21 @@ class MainWindow(QMainWindow):
         self.filter_button.setDisabled(True)
         self.filter_button.clicked.connect(self.filter_operation)
 
+        # ---------------------------- Tree Widget ---------------------------------- #
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(2)
+        self.tree.setHeaderLabels([" ", " "])
+        self.tree.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.tree.itemClicked.connect(self.item_selected)
+        if self.active_tree_path is None:
+            self.data = None
+        else:
+            self.import_tree_operation(import_on_load=True)
+
+        # ---------------------------- Member Info Tab ------------------------------ #
+        self.member_info_widget = QWidget()
+        self.member_info_widget.setVisible(False)
+
         # ---------------------------- Add Widgets To Layout ------------------------ #
         self.layout.addWidget(self.tree, 0, 1, 8, 2)
         self.layout.addWidget(self.new_tree_button, 0, 0)
@@ -83,20 +93,6 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.filter_button, 5, 0)
 
         self.central_widget.setLayout(self.layout)
-
-
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat('myApp/QtWidget'):
-            event.accept()
-
-    def dropEvent(self, event):
-        stream = QtCore.QDataStream(event.mimeData().data('myApp/QtWidget'))
-        object_name = stream.readQString()
-        widget = self.findChild(QWidget, object_name)
-        if not widget:
-            return
-        widget.move(event.pos() - stream.readQVariant())
 
     @pyqtSlot()
     def add_member_operation(self):
@@ -200,6 +196,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def create_tree_operation(self):
+
         self.add_member_button.setEnabled(True)
         self.check_relation_button.setEnabled(True)
         self.filter_button.setEnabled(True)
@@ -337,7 +334,7 @@ class MainWindow(QMainWindow):
         self.focused_window.show()
 
     @pyqtSlot()
-    def import_tree_operation(self, family_name="Test"):
+    def import_tree_operation(self, import_on_load=False):
 
         def initialize_data(current_node, parent_item=None):
             parents = current_node['parents']
@@ -360,27 +357,99 @@ class MainWindow(QMainWindow):
             for child in children:
                 initialize_data(child, item)
 
-        if self.data is None:
-            with open(f"{os.getcwd()}/data/{family_name}.json") as tree_json:
-                self.data = json.load(tree_json)
-        items = []
-        [initialize_data(node) for node in self.data['family_members']]
-        self.tree.insertTopLevelItems(0, items)
+        try:
+            if import_on_load and os.path.isfile(self.active_tree_path):
+                self.import_tree(self.active_tree_path)
+                items = []
+                [initialize_data(node) for node in self.data['family_members']]
+                self.tree.insertTopLevelItems(0, items)
+                return
+            elif import_on_load:
+                with open(self.config_file_path, mode="w+") as config_json:
+                    config_file = {"active_tree_path": None,
+                                   "global_id_counter": self.id_counter}
+                    json.dump(config_file, config_json)
+                self.button_states(mode="disabled")
+                self.active_tree_path = None
+                self.tree.clear()
+                return
+            try:
+                if os.path.isfile(self.active_tree_path):
+                    msg = QMessageBox()
+                    msg.setWindowTitle("Warning")
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setText("Do you want to save your changes on the currently active tree?")
+                    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                    x = msg.exec_()
+                    if x == QMessageBox.Yes:
+                        with open(self.active_tree_path, 'w+') as tree_json:
+                            json.dump(self.data, tree_json)
+                        self.active_tree_path = None
+                        self.tree.clear()
+                    elif x == QMessageBox.No:
+                        self.active_tree_path = None
+                        self.tree.clear()
+                    elif x == QMessageBox.Cancel:
+                        msg.close()
+            except TypeError:
+                pass
 
-        self.add_member_button.setEnabled(True)
-        self.check_relation_button.setEnabled(True)
-        self.filter_button.setEnabled(True)
+            if self.active_tree_path is None:
+                file_path, _ = QFileDialog.getOpenFileName(self, "Import Tree", "", "JSON Files (*.json)")
+                if file_path != "":
+                    self.import_tree(file_path)
+                    items = []
+                    [initialize_data(node) for node in self.data['family_members']]
+                    self.tree.insertTopLevelItems(0, items)
+        except KeyError:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Tree file you've selected is either corrupted or not accepted as a tree file.")
+            x = msg.exec_()
+            with open(self.config_file_path, mode="w+") as config_json:
+                config_file = {"active_tree_path": None,
+                               "global_id_counter": self.id_counter}
+                json.dump(config_file, config_json)
+            self.button_states(mode="disabled")
+            self.active_tree_path = None
+            self.data = None
+            self.tree.clear()
+
+    def import_tree(self, tree_path):
+        with open(self.config_file_path, mode="w+") as config_json:
+            config_file = {"active_tree_path": tree_path,
+                           "global_id_counter": self.id_counter}
+            json.dump(config_file, config_json)
+
+        self.button_states(mode="enabled")
+        self.active_tree_path = tree_path
+
+        with open(tree_path, 'r') as tree_json:
+            self.data = json.load(tree_json)
 
     @pyqtSlot()
     def export_tree(self):
-        # this is just a template for the main window
-        # directory view will be implemented later
-        pass
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export Tree", "", "JSON Files (*.json)")
+        if file_path != "":
+            with open(file_path, mode="w+") as new_tree_file:
+                json.dump(self.data, new_tree_file)
 
     @pyqtSlot(QTreeWidgetItem, int)
     def item_selected(self, selected_item, selected_index):
-        # print(selected_item.text(selected_index))
-        pass
+        print(f'{selected_item.text(selected_index)}: {selected_item.toolTip(selected_index)}')
+
+    def button_states(self, mode):
+        if mode == "enabled":
+            self.add_member_button.setEnabled(True)
+            self.check_relation_button.setEnabled(True)
+            self.filter_button.setEnabled(True)
+            self.export_tree_button.setEnabled(True)
+        elif mode == "disabled":
+            self.add_member_button.setDisabled(True)
+            self.check_relation_button.setDisabled(True)
+            self.filter_button.setDisabled(True)
+            self.export_tree_button.setDisabled(True)
 
 
 if __name__ == '__main__':
