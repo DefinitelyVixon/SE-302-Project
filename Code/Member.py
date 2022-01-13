@@ -1,5 +1,10 @@
 from Code.Birthday import Birthday
+import enum
 
+class Gender(enum.Enum):
+    Male = 1
+    Female = 2
+    NonBinary = 3
 
 class Member:
     def __init__(self, name: str, surname: str, age: int, birthday=None, gender=None):
