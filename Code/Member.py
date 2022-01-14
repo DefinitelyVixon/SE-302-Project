@@ -1,4 +1,4 @@
-from Code.Birthday import Birthday
+from Birthday import Birthday
 import enum
 
 

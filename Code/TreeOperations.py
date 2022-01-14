@@ -19,8 +19,8 @@ class MainWindow(QMainWindow):
         # ---------------------------- Special Class Variables ---------------------- #
         self.focused_window = None
         self.selected_member = None
-        self.config_file_path = f'{os.getcwd()}/data/config.json'
-        self.draft_path = f'{os.getcwd()}/data/draft.json'
+        self.config_file_path = f'{os.getcwd()}/config.json'
+        self.draft_path = f'{os.getcwd()}/draft.json'
 
         # ---------------------------- App Configuration ---------------------------- #
         with open(self.config_file_path) as config_json:
@@ -598,7 +598,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def export_tree_operation(self, auto_save=False):
         if auto_save:
-            file_path = f'{os.getcwd()}/data/draft.json'
+            file_path = f'{os.getcwd()}/draft.json'
         else:
             file_path, _ = QFileDialog.getSaveFileName(self, "Export Tree", "", "JSON Files (*.json)")
         if file_path != "":
