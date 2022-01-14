@@ -32,3 +32,6 @@
   in the current session before saving.
   + [X] ~~The program shall keep the latest changes as a draft if user(s) closes
   the program without saving.~~
+  
+  ## Documentation
+  https://github.com/DefinitelyVixon/SE-302-Project/blob/main/FamilyTreeBuilderDocumentation.pdf
